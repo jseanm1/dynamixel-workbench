@@ -68,6 +68,7 @@ class DynamixelController
 
   // ROS Service Server
   ros::ServiceServer dynamixel_command_server_;
+  ros::ServiceServer dynamixel_mode_server_;
 
   // ROS Service Client
 
@@ -125,6 +126,8 @@ class DynamixelController
   void commandVelocityCallback(const geometry_msgs::Twist::ConstPtr &msg);
   void trajectoryMsgCallback(const trajectory_msgs::JointTrajectory::ConstPtr &msg);
   bool dynamixelCommandMsgCallback(dynamixel_workbench_msgs::DynamixelCommand::Request &req,
+                                   dynamixel_workbench_msgs::DynamixelCommand::Response &res);
+  bool dynamixelModeMsgCallback(dynamixel_workbench_msgs::DynamixelCommand::Request &req,
                                    dynamixel_workbench_msgs::DynamixelCommand::Response &res);
 };
 

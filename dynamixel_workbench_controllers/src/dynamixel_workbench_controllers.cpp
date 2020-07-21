@@ -328,6 +328,7 @@ void DynamixelController::initSubscriber()
 void DynamixelController::initServer()
 {
   dynamixel_command_server_ = priv_node_handle_.advertiseService("dynamixel_command", &DynamixelController::dynamixelCommandMsgCallback, this);
+  dynamixel_mode_server_ = priv_node_handle_.advertiseService("dynamixel_mode", &DynamixelController::dynamixelModeMsgCallback, this);
 }
 
 void DynamixelController::readCallback(const ros::TimerEvent&)
@@ -751,6 +752,66 @@ bool DynamixelController::dynamixelCommandMsgCallback(dynamixel_workbench_msgs::
   {
     ROS_ERROR("%s", log);
     ROS_ERROR("Failed to write value[%d] on items[%s] to Dynamixel[ID : %d]", value, item_name.c_str(), id);
+  }
+
+  res.comm_result = result;
+
+  return true;
+}
+
+bool DynamixelController::dynamixelModeMsgCallback(dynamixel_workbench_msgs::DynamixelCommand::Request &req,
+                                                      dynamixel_workbench_msgs::DynamixelCommand::Response &res)
+{
+  /*
+  CURRENT_CONTROL_MODE                  = 0;
+  VELOCITY_CONTROL_MODE                 = 1;
+  POSITION_CONTROL_MODE                 = 3;
+  */
+
+  bool result = false;
+  const char* log;
+
+  uint8_t id = req.id;
+  std::string item_name = req.addr_name;
+  int32_t value = req.value;
+
+  if (item_name.compare("Operating_Mode") == 0 && (value == 0 || value == 1 || value == 3))
+  {
+    ROS_INFO("Request to change Mode of Motor %d to %d", id, value);
+
+    ROS_INFO("Torque Off");
+    result = dxl_wb_->torqueOff(id);
+
+    if (!result) {
+      ROS_ERROR("%s", log);
+      ROS_ERROR("Failed to switch torque off");
+
+      res.comm_result = result;
+      return true;
+    }
+
+    ROS_INFO("Changing Mode");
+    result = dxl_wb_->itemWrite(id, item_name.c_str(), value, &log);
+
+    if (result == false)
+    {
+      ROS_ERROR("%s", log);
+      ROS_ERROR("Failed to write value[%d] on items[%s] to Dynamixel[ID : %d]", value, item_name.c_str(), id);
+    }
+
+    result = dxl_wb_->torqueOn(id);
+    ROS_INFO("Torque On");
+
+    if (!result) {
+      ROS_ERROR("%s", log);
+      ROS_ERROR("Failed to switch torque off");
+
+      res.comm_result = result;
+      return true;
+    }
+
+  } else {
+    ROS_ERROR("Invalid request : addr_name %s value %d", item_name.c_str(), value);
   }
 
   res.comm_result = result;
